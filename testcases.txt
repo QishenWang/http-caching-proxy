@@ -1,0 +1,153 @@
+Test Cases - HTTP Cache Proxy
+
+TEST "GET" request:
+----------------------------------------------------------------------------------------------
+Sample site:
+- http://info.cern.ch
+
+Sample log:
+0: "GET http://info.cern.ch/ HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:30:55 2022
+0: not in cache
+0: Requesting "GET http://info.cern.ch/ HTTP/1.1" from info.cern.ch
+0: Received "HTTP/1.1 200 OK" from info.cern.ch
+0: Responding "HTTP/1.1 200 OK"
+1: "GET http://info.cern.ch/favicon.ico HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:30:55 2022
+1: not in cache
+1: Requesting "GET http://info.cern.ch/favicon.ico HTTP/1.1" from info.cern.ch
+1: Received "HTTP/1.1 200 OK" from info.cern.ch
+1: Responding "HTTP/1.1 200 OK"
+
+Other sites:
+- http://www.columbia.edu/~fdc/sample.html
+- http://www.testingmcafeesites.com/
+
+TEST "cache capacity exceeds":
+----------------------------------------------------------------------------------------------
+We set the cache capacity to be 1 for this testing for convenience and observe the outcomes
+
+Sample log:
+0: "GET http://info.cern.ch/ HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:59:22 2022
+0: not in cache
+0: Requesting "GET http://info.cern.ch/ HTTP/1.1" from info.cern.ch
+0: Received "HTTP/1.1 200 OK" from info.cern.ch
+0: Responding "HTTP/1.1 200 OK"
+1: "GET http://info.cern.ch/favicon.ico HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:59:22 2022
+1: not in cache
+1: Requesting "GET http://info.cern.ch/favicon.ico HTTP/1.1" from info.cern.ch
+1: Received "HTTP/1.1 200 OK" from info.cern.ch
+1: Responding "HTTP/1.1 200 OK"
+2: "GET http://www.testingmcafeesites.com/ HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:59:24 2022
+2: not in cache
+2: Requesting "GET http://www.testingmcafeesites.com/ HTTP/1.1" from www.testingmcafeesites.com
+2: Received "HTTP/1.1 200 OK" from www.testingmcafeesites.com
+2: Responding "HTTP/1.1 200 OK"
+3: "GET http://www.testingmcafeesites.com/favicon.ico HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:59:25 2022
+3: not in cache
+3: Requesting "GET http://www.testingmcafeesites.com/favicon.ico HTTP/1.1" from www.testingmcafeesites.com
+3: Received "HTTP/1.1 404 Not Found" from www.testingmcafeesites.com
+3: Responding "HTTP/1.1 404 Not Found"
+4: "GET http://info.cern.ch/ HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:59:31 2022
+4: not in cache
+4: Requesting "GET http://info.cern.ch/ HTTP/1.1" from info.cern.ch
+4: Received "HTTP/1.1 200 OK" from info.cern.ch
+4: Responding "HTTP/1.1 200 OK"
+5: "GET http://info.cern.ch/favicon.ico HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:59:31 2022
+5: not in cache
+5: Requesting "GET http://info.cern.ch/favicon.ico HTTP/1.1" from info.cern.ch
+5: Received "HTTP/1.1 200 OK" from info.cern.ch
+5: Responding "HTTP/1.1 200 OK"
+
+TEST "in-cache validation":
+----------------------------------------------------------------------------------------------
+Sample log:
+2: "GET http://info.cern.ch/ HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:31:04 2022
+2: in cache, requires validation
+2: Received "HTTP/1.1 304 Not Modified" from info.cern.ch
+2: Responding "HTTP/1.1 200 OK"
+
+TEST "max-age" && "in-cache expired":
+----------------------------------------------------------------------------------------------
+Sample log:
+0: "GET http://httpbin.org/cache/10 HTTP/1.1" from 10.197.88.253 @ Sun Feb 20 22:27:50 2022
+0: not in cache
+0: Requesting "GET http://httpbin.org/cache/10 HTTP/1.1" from httpbin.org
+0: Received "HTTP/1.1 200 OK" from httpbin.org
+0: Responding "HTTP/1.1 200 OK"
+0: cached, expires at Sun Feb 20 22:28:00 2022
+1: "GET http://httpbin.org/cache/10 HTTP/1.1" from 10.197.88.253 @ Sun Feb 20 22:27:53 2022
+1: in cache, valid
+1: Responding "HTTP/1.1 200 OK"
+2: "GET http://httpbin.org/cache/10 HTTP/1.1" from 10.197.88.253 @ Sun Feb 20 22:28:05 2022
+2: in cache, but expired at Sun Feb 20 22:28:00 2022
+2: Responding "HTTP/1.1 200 OK"
+
+TEST "POST" request:
+----------------------------------------------------------------------------------------------
+Sample site:
+- http://httpbin.org/forms/post
+
+Sample log:
+0: "GET http://httpbin.org/forms/post HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:54:55 2022
+0: not in cache
+0: Requesting "GET http://httpbin.org/forms/post HTTP/1.1" from httpbin.org
+0: Received "HTTP/1.1 200 OK" from httpbin.org
+0: Responding "HTTP/1.1 200 OK"
+1: "GET http://httpbin.org/favicon.ico HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:54:55 2022
+1: not in cache
+1: Requesting "GET http://httpbin.org/favicon.ico HTTP/1.1" from httpbin.org
+1: Received "HTTP/1.1 404 NOT FOUND" from httpbin.org
+1: Responding "HTTP/1.1 404 NOT FOUND"
+2: "POST http://httpbin.org/post HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 21:55:05 2022
+2: Responding "HTTP/1.1 200 OK"
+
+TEST "CONNECT" request:
+----------------------------------------------------------------------------------------------
+Sample site:
+- https://www.youtube.com
+
+Sample log:
+0: "CONNECT www.youtube.com:443 HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 22:04:25 2022
+0: Responding "HTTP/1.1 200 OK"
+0: Tunnel closed
+
+- And any other https sites...
+
+TEST "CHUNKED" response:
+----------------------------------------------------------------------------------------------
+Sample site:
+- http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx
+
+Sample log:
+0: "GET http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 22:02:43 2022
+0: not in cache
+0: Requesting "GET http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx HTTP/1.1" from www.httpwatch.com
+0: Received "HTTP/1.1 200 OK" from www.httpwatch.com
+0: not cacheable because it is a chunked response
+
+TEST "content-length":
+----------------------------------------------------------------------------------------------
+Sample site:
+http://www.columbia.edu/~fdc/sample.html
+
+Sample log:
+0: "GET http://www.columbia.edu/~fdc/sample.html HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 22:33:03 2022
+0: not in cache
+0: Requesting "GET http://www.columbia.edu/~fdc/sample.html HTTP/1.1" from www.columbia.edu
+0: Received "HTTP/1.1 200 OK" from www.columbia.edu
+0: Responding "HTTP/1.1 200 OK"
+2: "GET http://www.columbia.edu/~fdc/picture-of-something.jpg HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 22:33:04 2022
+1: "GET http://www.columbia.edu/favicon.ico HTTP/1.1" from 10.197.53.94 @ Sun Feb 20 22:33:04 2022
+1: not in cache
+2: not in cache
+2: Requesting "GET http://www.columbia.edu/~fdc/picture-of-something.jpg HTTP/1.1" from www.columbia.edu
+1: Requesting "GET http://www.columbia.edu/favicon.ico HTTP/1.1" from www.columbia.edu
+1: Received "HTTP/1.1 200 OK" from www.columbia.edu
+1: Responding "HTTP/1.1 200 OK"
+2: Received "HTTP/1.1 200 OK" from www.columbia.edu
+2: Responding "HTTP/1.1 200 OK"
+
+TEST Bad request:
+----------------------------------------------------------------------------------------------
+Sample log:
+0: "BAD http://info.cern.ch/ HTTP/1." from 67.159.88.156 @ Sun Feb 20 22:31:07 2022
+0: Responding "HTTP1.1 400 ERROR"

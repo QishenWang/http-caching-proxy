@@ -1,0 +1,21 @@
+Danger Log - HTTP Cache Proxy
+
+1. In general, our proxy functins with GET, POST, and CONNECT. We implements the objective-oriented design to conduct our proxy, cache, and parser.
+2. Using a while loop, our proxy reads requests from clients and handles them respectively in new created threads. For each thread, we give each request a unique ID. To ensure the thread safety and synchronization, we take advantage of "pthread_mutex_lock" and "pthread_mutex_unlock" to create, update, and delete the cache information and write logs.
+3. When we parsed the requests and responses in our Parser class. We ignored the difference of new line symbol in different kind OS. We ignored the '\r' at the end of each line besides the '\n' at first and fixed it then.
+4. Our HTTP proxy caches GET responses from server. The data structure used for the cache is illustrated below:
+
+   - Cache < <Request Line>, <Cached Response> > where request line denotes the request lines of client's HTTP requests and cached response denotes the HTTP responses from servers.
+
+   And the high-level overview of the caching policy of our HTTP cache proxy is as below:
+
+   - We first check if the request line from the client request exists in the proxy's cache as the key. If the request line is not in the cache, the proxy would directly send the client request to the designated server and later cache the server response if it is a 200 OK response. Otherwise, the proxy find the cached response corresponding to that client request in the cache.
+   - Then we check the cached response's cache control header to determine how to proceed next. For example, if it is 'no-cache', then the proxy would add the "If-Modified-Since" or the "If-None-Match" headers and corresponding contents to the original client request and send it to server for revalidation. And the proxy would send the cached response to the client back if the server returns 304 status code. If the status code is 200 instead, the proxy would re-fetching and caching the response and send it back to client.
+   - The cache itself has a maximum capacity, limiting the number of responses it could cache. If the maximum capacity is exceeded, the least recently cached response would be removed from the cache to make space so that the new response could be cached.
+
+   Even though the current version of our proxy works well, we think that the a better proxy cache would be limit its capacity by the size of the contents it stores, rather than the amount of the contents it stores. This is something we could further improve. We also want to mention that our current version of proxy handles the most commonly seen cache control headers, and that some that are hardly seen are omitted.
+
+5. Our HTTP proxy has strong exception guarantee. For each client request that our proxy receives, our proxy would create a new thread to deal with it. Any exceptions (e.g: send failure, recv failure, connect to host failure, etc.) happened within the thread are catched immediately within the thread so that they would not impact the operations of any other threads. This means that our proxy would not went down due to any exceptions ideally.  
+6. We have also implemented our own version of daemon besides the docker version. The function to create the daemon process lies within the Proxy class. To enable our version of the daemon, simply call "Proxy::becomeDaemon();" before running the proxy in server.cpp.
+7. During the development phase, we notice that some websites could not be loaded normally. We later observed that that is because some websites have HTTP responses with large content-length or with "chunked" in its header that could not be received through one single recv() call. Instead, we need to deploy our own strategy to accumulate several consecutive recv() into one (either by expanding the vector<char> reponsebuffer or simply by appending string to another string).
+8. Our proxy handles external failure by checking whether the client request's belong to either one of "GET", "POST" or "CONNECT". Otherwise it sends 400 status code. Another case is that when corrupted responses occur, the proxy would send 502 status code.
